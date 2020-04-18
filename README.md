@@ -1,5 +1,21 @@
 # 2020 CISC 信安竞赛准备
 
+## 软件结构
+
+- scapy_process.py
+  - 实时数据获取 real_time.csv（命名示例）
+- data_process.py
+  - 读取 real_time.csv --> 生成
+  - 读取 offline.csv --> 生成
+- discriminator.py
+  - 定义神经网络
+- result_process.py
+  - 运行，训练模型，保存模型
+  - 展示训练结果
+  - 读取新数据，可视化新结果
+- interface.py
+  - 软件运行入口
+
 ## 参考资料
 
 > [第十二届全国大学生信息安全竞赛作品赛参赛指南信息](http://www.ciscn.cn/announcement/view/119?from=singlemessage&isappinstalled=0)
