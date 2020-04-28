@@ -1,3 +1,5 @@
+from scapy.all import *
+
 class BasicPacketInfo():
     def __init__(self,no,src,dst,sport,dport,ptc,payload,timestamp):
         super()
@@ -24,9 +26,6 @@ class BasicPacketInfo():
         self.payloadPacket = 0
         self.generateflowID()
 
-    def __str__(self):
-        return (str(self.no)+' '+self.flowID)
-
     def generateflowID(self):
         forward = True
         src = self.src.split('.')
@@ -42,12 +41,13 @@ class BasicPacketInfo():
             self.flowID = self.dst + '-' +str(self.dport) + '-' + self.src + '-' + str(self.sport) + '-' + str(self.ptc)
     def fwdFlowID(self):
         self.flowID = self.src + '-' + str(self.sport) + '-' + self.dst + '-' + str(self.dport) + '-' + str(self.ptc)
-        #return (self.src + '-' + str(self.sport) + '-' + self.dst + '-' + str(self.dport) + '-' + str(self.ptc))
         return self.flowID
+        #return (self.src + '-' + str(self.sport) + '-' + self.dst + '-' + str(self.dport) + '-' + str(self.ptc))
     def bwdFlowID(self):
         self.flowID = self.dst + '-' +str(self.dport) + '-' + self.src + '-' + str(self.sport) + '-' + str(self.ptc)
-        #return (self.dst + '-' +str(self.dport) + '-' + self.src + '-' + str(self.sport) + '-' + str(self.ptc))
         return self.flowID
+        #return (self.dst + '-' +str(self.dport) + '-' + self.src + '-' + str(self.sport) + '-' + str(self.ptc))
+        
     def setflagFIN(self,value):
         self.flagFIN = value
     def setflagPSH(self,value):
@@ -64,6 +64,8 @@ class BasicPacketInfo():
         self.flagCWR = value
     def setflagRST(self,value):
         self.flagRST = value
+    def setprotocol(self,value):
+    	self.ptc = value
 
     def setTCPWindow(self,value):
         self.TCPWindow = value

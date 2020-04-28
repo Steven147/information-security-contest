@@ -30,22 +30,12 @@
     </column>
     <column>
      <property name="text">
-      <string>Source Port</string>
-     </property>
-    </column>
-    <column>
-     <property name="text">
       <string>Protocol</string>
      </property>
     </column>
     <column>
      <property name="text">
       <string>Destination IP</string>
-     </property>
-    </column>
-    <column>
-     <property name="text">
-      <string>Destination Port</string>
      </property>
     </column>
    </widget>
@@ -58,6 +48,11 @@
       <height>221</height>
      </rect>
     </property>
+    <column>
+     <property name="text">
+      <string notr="true">1</string>
+     </property>
+    </column>
    </widget>
    <widget class="QPushButton" name="sniffStop">
     <property name="geometry">
