@@ -19,7 +19,7 @@
      <rect>
       <x>0</x>
       <y>0</y>
-      <width>541</width>
+      <width>841</width>
       <height>241</height>
      </rect>
     </property>
@@ -43,6 +43,11 @@
       <string>Length</string>
      </property>
     </column>
+    <column>
+     <property name="text">
+      <string>Info</string>
+     </property>
+    </column>
    </widget>
    <widget class="QTreeWidget" name="analysis">
     <property name="geometry">
@@ -62,8 +67,8 @@
    <widget class="QPushButton" name="sniffStop">
     <property name="geometry">
      <rect>
-      <x>600</x>
-      <y>10</y>
+      <x>630</x>
+      <y>430</y>
       <width>75</width>
       <height>23</height>
      </rect>

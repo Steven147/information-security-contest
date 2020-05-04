@@ -15,6 +15,7 @@ class Main(QMainWindow):
         #Behavior
         self.summary.setSelectionBehavior(QAbstractItemView.SelectRows)     #点击表格时选择整行
         self.analysis.setHeaderHidden(True)                                 #TreeWidget列头隐藏
+        self.summary.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
         #signal
         self.summary.cellClicked.connect(self.moreInfo)                     #点击单行表格显示该数据的详细信息
         self.actionOnlineSniff.triggered.connect(self.onlineSniff)          #暂定，menuBar下启动在线抓包
@@ -24,9 +25,12 @@ class Main(QMainWindow):
         self.layout = QGridLayout()                                         #排版信息
         self.layout.addWidget(self.summary,0,0)
         self.layout.addWidget(self.analysis,1,0)
+        #initialize
+        self.packet = []
         
     def onlineSniff(self):
         self.packet = []
+        self.summary.setRowCount(0)
         #thread settings
         self.threadpool = QThreadPool()                                     #线程池
         thread = packetsniff()
@@ -42,6 +46,7 @@ class Main(QMainWindow):
         while True:
             url = dialog.getOpenFileName()
             if (url[0][-4:] == 'pcap' ):                
+                self.summary.setRowCount(0)
                 self.packet = sniff(offline = url[0])
                 self.updateOffline()
                 break
@@ -51,32 +56,52 @@ class Main(QMainWindow):
                 QMessageBox.information(self,"File Extension Error","Only Accept .pcap file")
         
     def updateOnline(self,packet):                                          #在线捕捉的流量显示（单条）
-        rowposition = self.summary.rowCount()
-        self.summary.insertRow(rowposition)
-        if IP in packet:
-            self.summary.setItem(rowposition,0,QTableWidgetItem(packet[IP].src))
-            self.summary.setItem(rowposition,1,QTableWidgetItem(str(packet[IP].proto)))
-            self.summary.setItem(rowposition,2,QTableWidgetItem(packet[IP].dst))
-        elif IPv6 in pacekt:
-            pass
+        self.tableUpdate(packet)
+        self.summary.resizeColumnsToContents()
         self.packet.append(packet)
 
     def updateOffline(self):                                         #离线捕捉的流量显示（多条）
         for i in self.packet:
-            rowposition = self.summary.rowCount()
-            self.summary.insertRow(rowposition)
-            if ARP in i:
-                self.summary.setItem(rowposition,0,QTableWidgetItem(i[ARP].psrc))
-                self.summary.setItem(rowposition,1,QTableWidgetItem('ARP'))
-                self.summary.setItem(rowposition,2,QTableWidgetItem(i[ARP].pdst))
-                self.summary.setItem(rowposition,3,QTableWidgetItem(len(i)))
-            elif IP in i:
-                self.summary.setItem(rowposition,0,QTableWidgetItem(i[IP].src))
-                if (i[IP].proto == 1): self.summary.setItem(rowposition,1,QTableWidgetItem('ICMP'))
-                elif (i[IP].proto == 6): self.summary.setItem(rowposition,1,QTableWidgetItem('TCP'))
-                elif (i[IP].proto == 17): self.summary.setItem(rowposition,1,QTableWidgetItem('UDP'))
-                self.summary.setItem(rowposition,2,QTableWidgetItem(i[IP].dst))
-                self.summary.setItem(rowposition,3,QTableWidgetItem(len(i)))
+            self.tableUpdate(i)
+        self.summary.resizeColumnsToContents()
+
+    def tableUpdate(self,packet):
+        rowposition = self.summary.rowCount()
+        self.summary.insertRow(rowposition)
+        self.summary.setItem(rowposition,3,QTableWidgetItem(str(len(packet))))
+        if ARP in packet:
+            self.summary.setItem(rowposition,0,QTableWidgetItem(packet[ARP].hwsrc))
+            self.summary.setItem(rowposition,1,QTableWidgetItem('ARP'))
+            self.summary.setItem(rowposition,2,QTableWidgetItem(packet[ARP].hwdst))
+            if (packet[ARP].op == 1): info = "Who has" + packet[ARP].psrc + "? Tell" + packet[ARP].pdst
+            elif (packet[ARP].op == 2): info = packet[ARP].pdst + "is at " + packet[ARP].hwsrc
+            elif (packet[ARP].op == 3): pass
+            elif (packet[ARP].op == 4): pass
+            self.summary.setItem(rowposition,4,QTableWidgetItem(info))
+
+        elif IP in packet:
+            self.summary.setItem(rowposition,0,QTableWidgetItem(packet[IP].src))
+            if (packet[IP].proto == 1): 
+                self.summary.setItem(rowposition,1,QTableWidgetItem('ICMP'))
+            elif (packet[IP].proto == 6): 
+                self.summary.setItem(rowposition,1,QTableWidgetItem('TCP'))
+                temp = ""
+                for k in packet[TCP].flags:
+                    if k == 'C': temp += 'CWR,'
+                    if k == 'E': temp += 'ECE,'
+                    if k == 'U': temp += 'URG,'
+                    if k == 'A': temp += 'ACK,'
+                    if k == 'P': temp += 'PSH,'
+                    if k == 'R': temp += 'RST,'
+                    if k == 'S': temp += 'SYN,'
+                    if k == 'F': temp += 'FIN,'
+                info = str(packet[TCP].sport) + '->' + str(packet[TCP].dport) + '[' + temp[:-1] + ']'
+                self.summary.setItem(rowposition,4,QTableWidgetItem(info))
+            elif (packet[IP].proto == 17): 
+                self.summary.setItem(rowposition,1,QTableWidgetItem('UDP'))
+                info = str(packet[UDP].sport) + '->' + str(packet[UDP].dport)
+                self.summary.setItem(rowposition,4,QTableWidgetItem(info))
+            self.summary.setItem(rowposition,2,QTableWidgetItem(packet[IP].dst))
 
     def moreInfo(self,line,col):                                            #暂定，流量详细信息
         packet = self.packet[line]
@@ -122,18 +147,18 @@ class Main(QMainWindow):
             #more flag information ..?
             tp.addChild(QTreeWidgetItem(['Windows Size' + str(packet[TCP].window)]))
             tp.addChild(QTreeWidgetItem(['Checksum' + str(packet[TCP].chksum)]))
-            tp.addChild(QTreeWidgetItem(['Urgent Pointer' + str(packet[TCP].urgpnt)]))
-            self.analysis.addTopLevelItem(tcp)
+            tp.addChild(QTreeWidgetItem(['Urgent Pointer' + str(packet[TCP].urgptr)]))
+            self.analysis.addTopLevelItem(tp)
         elif UDP in packet:
             tp = QTreeWidgetItem(['User Datagram Protocol'])
             tp.addChild(QTreeWidgetItem(['Source Port' + str(packet[UDP].sport)]))
             tp.addChild(QTreeWidgetItem(['Destination Port' + str(packet[UDP].dport)]))
             tp.addChild(QTreeWidgetItem(['Length' + str(packet[UDP].len)]))
             tp.addChild(QTreeWidgetItem(['Checksum' + str(packet[UDP].chksum)]))
-            self.analysis.addTopLevelItem(tcp)
+            self.analysis.addTopLevelItem(tp)
         elif ICMP in packet:
             tp = QTreeWidgeItem(['Internet Control Message Protocol'])
-            self.analysis.addTopLevelItem(tcp)
+            self.analysis.addTopLevelItem(tp)
 
     def save(self):
         dialog = QFileDialog()
