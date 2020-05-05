@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>838</width>
-    <height>521</height>
+    <height>603</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,14 +18,19 @@
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>0</y>
+      <y>20</y>
       <width>841</width>
       <height>241</height>
      </rect>
     </property>
     <column>
      <property name="text">
-      <string>Source IP</string>
+      <string>No</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>Source</string>
      </property>
     </column>
     <column>
@@ -35,7 +40,7 @@
     </column>
     <column>
      <property name="text">
-      <string>Destination IP</string>
+      <string>Destination</string>
      </property>
     </column>
     <column>
@@ -53,7 +58,7 @@
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>240</y>
+      <y>260</y>
       <width>541</width>
       <height>221</height>
      </rect>
@@ -75,6 +80,16 @@
     </property>
     <property name="text">
      <string>Stop</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="filterLine">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>0</y>
+      <width>841</width>
+      <height>21</height>
+     </rect>
     </property>
    </widget>
   </widget>
