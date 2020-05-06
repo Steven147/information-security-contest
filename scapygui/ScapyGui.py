@@ -1,10 +1,14 @@
 import sys
+import requests
 from PyQt5 import uic
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from packetcatch import packetsniff
+from Geo.geo import *
 from scapy.all import *
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Nav
+
 
 class Main(QMainWindow):
     def __init__(self):
@@ -29,6 +33,7 @@ class Main(QMainWindow):
         self.actionOnlineSniff.triggered.connect(self.onlineSniff)              #menuBar下启动在线抓包
         self.actionOpen.triggered.connect(self.offlineSniff)                    #menuBar下选择指定pcap文件读取分析
         self.actionSave.triggered.connect(self.save)                            #menuBar下将捕抓的数据包储存
+        self.actionLocation.triggered.connect(self.geoGet)
         self.filterLine.returnPressed.connect(self.filter)                      #QLineEdit接收到回车后将发送信号进行处理
         #Layout setting
         self.layout = QGridLayout()                                         #排版信息
@@ -45,7 +50,8 @@ class Main(QMainWindow):
         '''
         #initialize,将上一次捕捉的信息清零，同时表格清空
         self.packet = []
-        self.summary.setRowCount(0)                                         
+        self.summary.setRowCount(0)
+        self.count = 0
         #thread settings
         self.threadpool = QThreadPool()                                     #线程池
         thread = packetsniff()
@@ -65,6 +71,7 @@ class Main(QMainWindow):
             url = dialog.getOpenFileName()                  #url[0]为路径，其它..
             if (url[0][-4:] == 'pcap' ):                
                 self.summary.setRowCount(0)
+                self.count = 0
                 self.packet = sniff(offline = url[0])
                 self.updateOffline()
                 break
@@ -270,6 +277,36 @@ class Main(QMainWindow):
         if (fileName != None) and (len(self.packet) != 0):
             _ = wrpcap(fileName[0],self.packet)
 
+    def geoGet(self):
+        '''
+        从IP地址透过requset ipstack获得地理位置（经纬度）
+        Lat - > Latitude 纬度
+        Lon -> Longitude 经度
+        在通过cartopy(matplotlib下开发)画出地理位置
+        '''
+        temp  = []
+        for i in self.packet:
+            if IP in i:
+                #这一步骤较为缓慢，可能可以改去其它线程?
+                slat,slon = self.getLatLon(i[IP].src)
+                dlat,dlon = self.getLatLon(i[IP].dst)
+                temp.append([(slat,slon),(dlat,dlon)])
+        map = plotFlow(temp)
+        toolbar = Nav(map,self)
+        layout = QVBoxLayout()
+        layout.addWidget(toolbar)
+        layout.addWidget(map)
+
+    def getLatLon(self,ip):
+        '''
+        从ipstack获得ip的物理位置
+        '''
+        url = 'http://api.ipstack.com/{}?access_key=1bdea4d0bf1c3bf35c4ba9456a357ce3'
+        res = requests.get(url.format(ip))
+        data = res.json()
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+        return latitude,longitude
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
