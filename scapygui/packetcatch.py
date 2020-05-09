@@ -1,5 +1,5 @@
 from PyQt5.QtCore import *
-from BasicPacket import BasicPacketInfo
+from FlowMeter.BasicPacket import BasicPacketInfo
 from scapy.all import *
 #import ptvsd
 

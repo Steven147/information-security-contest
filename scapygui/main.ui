@@ -110,7 +110,22 @@
     <addaction name="actionSave"/>
     <addaction name="actionOnlineSniff"/>
    </widget>
+   <widget class="QMenu" name="menuPlot">
+    <property name="title">
+     <string>Plot</string>
+    </property>
+    <addaction name="actionLocation"/>
+   </widget>
+   <widget class="QMenu" name="menuCheck">
+    <property name="title">
+     <string>Check</string>
+    </property>
+    <addaction name="actionFlow"/>
+    <addaction name="actionPacket"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuPlot"/>
+   <addaction name="menuCheck"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionOpen">
@@ -126,6 +141,21 @@
   <action name="actionSave">
    <property name="text">
     <string>Save</string>
+   </property>
+  </action>
+  <action name="actionLocation">
+   <property name="text">
+    <string>Location</string>
+   </property>
+  </action>
+  <action name="actionFlow">
+   <property name="text">
+    <string>Flow</string>
+   </property>
+  </action>
+  <action name="actionPacket">
+   <property name="text">
+    <string>Packet</string>
    </property>
   </action>
  </widget>

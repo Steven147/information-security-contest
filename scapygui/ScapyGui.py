@@ -4,10 +4,11 @@ from PyQt5 import uic
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from scapy.all import *
 from packetcatch import packetsniff
 from Geo.geo import *
-from scapy.all import *
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Nav
+from FlowCheck.run import getFlowInfo
 
 
 class Main(QMainWindow):
@@ -34,6 +35,8 @@ class Main(QMainWindow):
         self.actionOpen.triggered.connect(self.offlineSniff)                    #menuBar下选择指定pcap文件读取分析
         self.actionSave.triggered.connect(self.save)                            #menuBar下将捕抓的数据包储存
         self.actionLocation.triggered.connect(self.geoGet)
+        self.actionFlow.triggered.connect(self.flowPredict)
+        self.actionPacket.triggered.connect(self.packetPredict)
         self.filterLine.returnPressed.connect(self.filter)                      #QLineEdit接收到回车后将发送信号进行处理
         #Layout setting
         self.layout = QGridLayout()                                         #排版信息
@@ -43,43 +46,7 @@ class Main(QMainWindow):
         self.packet = []                                                        #捕抓报的储存（用于过滤及显示详细信息用）
         self.filterFlag = False                                                 #表格显示的信息是否已经被过滤了
         self.count = 0                                                          #捕抓的第几个包（表格中的No）
-        
-    def onlineSniff(self):
-        '''
-        开启一个新的线程以进行在线嗅探，具体嗅探过程与packetcatch.py中
-        '''
-        #initialize,将上一次捕捉的信息清零，同时表格清空
-        self.packet = []
-        self.summary.setRowCount(0)
-        self.count = 0
-        #thread settings
-        self.threadpool = QThreadPool()                                     #线程池
-        thread = packetsniff()
-        thread.signals.doneSignal.connect(self.updateOnline)                #捕捉到一条流量的反馈
-        self.sniffStop.clicked.connect(thread.stop)                         #暂定，在线捕抓停止按钮
-        self.threadpool.start(thread)
-
-    def offlineSniff(self):
-        '''
-        通过调用QFileDialog打开.pcap文件达成离线读取
-        '''
-        dialog = QFileDialog()
-        dialog.setAcceptMode(QFileDialog.AcceptOpen)        #QFileDialog设定打开模式
-        dialog.setFileMode(QFileDialog.ExistingFile)
-        dialog.setViewMode(QFileDialog.Detail)
-        while True:
-            url = dialog.getOpenFileName()                  #url[0]为路径，其它..
-            if (url[0][-4:] == 'pcap' ):                
-                self.summary.setRowCount(0)
-                self.count = 0
-                self.packet = sniff(offline = url[0])
-                self.updateOffline()
-                break
-            elif len(url[0]) == 0:                          #Cancel Button Selected
-                break
-            else:
-                QMessageBox.information(self,"File Extension Error","Only Accept .pcap file")
-        
+                
     def updateOnline(self,packet):
         '''
         在线捕抓信号的返回函数，其中packet为scapy捕抓下来的格式
@@ -264,7 +231,7 @@ class Main(QMainWindow):
             if (str(chk) == target):
                 self.summary.hideRow(i)
 
-            
+    #File Menubar        
     def save(self):
         '''
         调用QFileDialog完成储存
@@ -277,20 +244,74 @@ class Main(QMainWindow):
         if (fileName != None) and (len(self.packet) != 0):
             _ = wrpcap(fileName[0],self.packet)
 
+    def onlineSniff(self):
+        '''
+        开启一个新的线程以进行在线嗅探，具体嗅探过程与packetcatch.py中
+        '''
+        #initialize,将上一次捕捉的信息清零，同时表格清空
+        self.packet = []
+        self.summary.setRowCount(0)
+        self.count = 0
+        #thread settings
+        self.threadpool = QThreadPool()                                     #线程池
+        thread = packetsniff()
+        thread.signals.doneSignal.connect(self.updateOnline)                #捕捉到一条流量的反馈
+        self.sniffStop.clicked.connect(thread.stop)                         #暂定，在线捕抓停止按钮
+        self.threadpool.start(thread)
+
+    def offlineSniff(self):
+        '''
+        通过调用QFileDialog打开.pcap文件达成离线读取
+        '''
+        dialog = QFileDialog()
+        dialog.setAcceptMode(QFileDialog.AcceptOpen)        #QFileDialog设定打开模式
+        dialog.setFileMode(QFileDialog.ExistingFile)
+        dialog.setViewMode(QFileDialog.Detail)
+        while True:
+            url = dialog.getOpenFileName()                  #url[0]为路径，其它..
+            if (url[0][-4:] == 'pcap' ):                
+                self.summary.setRowCount(0)
+                self.count = 0
+                self.packet = sniff(offline = url[0])
+                self.updateOffline()
+                break
+            elif len(url[0]) == 0:                          #Cancel Button Selected
+                break
+            else:
+                QMessageBox.information(self,"File Extension Error","Only Accept .pcap file")
+    #Plot Menubar
     def geoGet(self):
         '''
         从IP地址透过requset ipstack获得地理位置（经纬度）
         Lat - > Latitude 纬度
         Lon -> Longitude 经度
         在通过cartopy(matplotlib下开发)画出地理位置
+        cartopy 安装 https://www.lfd.uci.edu/~gohlke/pythonlibs/#cartopy (需要wheel)
         '''
         temp  = []
+        repeat_ip = []
+        locallat = 1.8504
+        locallon = 102.933
         for i in self.packet:
             if IP in i:
-                #这一步骤较为缓慢，可能可以改去其它线程?
-                slat,slon = self.getLatLon(i[IP].src)
-                dlat,dlon = self.getLatLon(i[IP].dst)
-                temp.append([(slat,slon),(dlat,dlon)])
+                #尽可能减少getLanLon的进入（耗时长）
+                src = self.isNat(i[IP].src)
+                dst = self.isNat(i[IP].dst)
+                if ((src,dst) in repeat_ip) or ((dst,src) in repeat_ip):
+                    continue
+                else:
+                    repeat_ip.append((src,dst))
+                if src != None: 
+                    slat,slon,cn_src = self.getLatLon(src)
+                else:           
+                    slat,slon = locallat,locallon
+                    cn_src = 'Batu Pahat'
+                if dst != None: 
+                    dlat,dlon,cn_dst = self.getLatLon(dst)
+                else:           
+                    dlat,dlon = locallat,locallon
+                    cn_dst = 'Batu Pahat'
+                temp.append([[slon,dlon],[slat,dlat],cn_src,cn_dst])
         map = plotFlow(temp)
         toolbar = Nav(map,self)
         layout = QVBoxLayout()
@@ -300,13 +321,36 @@ class Main(QMainWindow):
     def getLatLon(self,ip):
         '''
         从ipstack获得ip的物理位置
+        data.get(continent_name,country_name,region_name,city)
         '''
         url = 'http://api.ipstack.com/{}?access_key=1bdea4d0bf1c3bf35c4ba9456a357ce3'
         res = requests.get(url.format(ip))
         data = res.json()
         latitude = data.get('latitude')
         longitude = data.get('longitude')
-        return latitude,longitude
+        country = data.get('city')
+        return latitude,longitude,country
+
+    def isNat(self,ip):
+        '''
+        判断ip是不是私有地址
+        A 类地址 10.0.0.0 ~ 10.255.255.255
+        B 类地址 172.16.0.0 ~ 17.31.255.255
+        C 类地址 192.168.0.0 ~ 192.168.255.255
+        '''
+        ipnum = [int(i) for i in ip.split('.')]
+        if (ipnum[0] == 10): return 
+        elif ((ipnum[0] == 172) and (ipnum[1]>=16 and ipnum[1]<32)): return
+        elif ((ipnum[0] == 192) and (ipnum[1] == 168)): return
+        else: return ip
+    
+    def flowPredict(self):
+        sth = getFlowInfo(self.packet)
+        print(sth)
+
+
+    def packetPredict(self):
+        pass
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
