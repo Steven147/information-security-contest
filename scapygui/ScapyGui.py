@@ -20,7 +20,7 @@ class Main(QMainWindow):
         self.filterLine -> QLineEdit,文本输入,回车表示信号发送,根据特定指令格式将符合条件的数据给隐藏起来
         '''
         super(Main,self).__init__()
-        uic.loadUi('main.ui',self)                                          #读取.ui文件（于QtDesigner设计）
+        uic.loadUi('main.ui',self)                                              #读取.ui文件（于QtDesigner设计）
         self.setWindowTitle("Something like Scapy")
         self.setFixedSize(800,800)
         #Behavior,一些widget的特性设置
@@ -36,10 +36,9 @@ class Main(QMainWindow):
         self.actionSave.triggered.connect(self.save)                            #menuBar下将捕抓的数据包储存
         self.actionLocation.triggered.connect(self.geoGet)
         self.actionFlow.triggered.connect(self.flowPredict)
-        self.actionPacket.triggered.connect(self.packetPredict)
         self.filterLine.returnPressed.connect(self.filter)                      #QLineEdit接收到回车后将发送信号进行处理
         #Layout setting
-        self.layout = QGridLayout()                                         #排版信息
+        self.layout = QGridLayout()                                             #排版信息
         self.layout.addWidget(self.summary,0,0)
         self.layout.addWidget(self.analysis,1,0)
         #initialize
@@ -171,7 +170,7 @@ class Main(QMainWindow):
             tp.addChild(QTreeWidgetItem(['Acknowledgment Number:' + str(packet[TCP].ack)]))
             tp.addChild(QTreeWidgetItem(['Header Length:' + str(packet[TCP].dataofs)]))
             tp.addChild(QTreeWidgetItem(['Flags:' + str(packet[TCP].flags)]))
-            #more flag information ..?                                              #TCPf各个flag的补充
+            #more flag information ..?                                              #TCP各个flag的补充
             tp.addChild(QTreeWidgetItem(['Windows Size:' + str(packet[TCP].window)]))
             tp.addChild(QTreeWidgetItem(['Checksum:' + str(packet[TCP].chksum)]))
             tp.addChild(QTreeWidgetItem(['Urgent Pointer:' + str(packet[TCP].urgptr)]))
@@ -252,12 +251,43 @@ class Main(QMainWindow):
         self.packet = []
         self.summary.setRowCount(0)
         self.count = 0
-        #thread settings
-        self.threadpool = QThreadPool()                                     #线程池
-        thread = packetsniff()
-        thread.signals.doneSignal.connect(self.updateOnline)                #捕捉到一条流量的反馈
-        self.sniffStop.clicked.connect(thread.stop)                         #暂定，在线捕抓停止按钮
-        self.threadpool.start(thread)
+        self.select = QDialog()
+        self.select = uic.loadUi('select.ui')
+        for i in get_windows_if_list():                                        #网卡信息
+            self.select.networkIF.addItem(i['name'])
+
+        import pandas as pd
+        location = pd.read_csv('worldcities.csv')
+        city = location['city_ascii'].to_list()
+        country = location['country'].to_list()
+        self.country_city = []
+        for i in range(0,len(city)):
+            self.country_city.append(country[i]+','+city[i])
+        country = list(dict.fromkeys(country))
+        country.sort()
+        self.select.Country.addItems(country)
+        self.select.Country.currentIndexChanged.connect(self.cityInfo)
+        if (self.select.exec_()):
+            #thread settings
+            self.city = self.select.City.currentText()
+            ifname = self.select.networkIF.currentText()
+            self.locallat = float(location.loc[location['city_ascii'] == self.city]['lat'])
+            self.locallon = float(location.loc[location['city_ascii'] == self.city]['lng'])
+            self.threadpool = QThreadPool()                                     #线程池
+            thread = packetsniff(ifname)
+            thread.signals.doneSignal.connect(self.updateOnline)                #捕捉到一条流量的反馈
+            self.sniffStop.clicked.connect(thread.stop)                         #暂定，在线捕抓停止按钮
+            self.threadpool.start(thread)
+
+    def cityInfo(self):
+        city = []
+        country = self.select.Country.currentText()
+        for i in self.country_city:
+            if country in i:
+                city.append(i.split(',')[1])
+        city.sort()
+        self.select.City.clear()
+        self.select.City.addItems(city)
 
     def offlineSniff(self):
         '''
@@ -272,8 +302,26 @@ class Main(QMainWindow):
             if (url[0][-4:] == 'pcap' ):                
                 self.summary.setRowCount(0)
                 self.count = 0
-                self.packet = sniff(offline = url[0])
-                self.updateOffline()
+                self.select = uic.loadUi('select.ui')
+                self.select.networkIF.setEnabled(False)
+                import pandas as pd
+                location = pd.read_csv('worldcities.csv')
+                city = location['city_ascii'].to_list()
+                country = location['country'].to_list()
+                self.country_city = []
+                for i in range(0,len(city)):
+                    self.country_city.append(country[i]+','+city[i])
+                country = list(dict.fromkeys(country))
+                country.sort()
+                self.select.Country.addItems(country)
+                self.select.Country.currentIndexChanged.connect(self.cityInfo)
+                if (self.select.exec_()):
+                    #thread settings
+                    self.city = self.select.City.currentText()
+                    self.locallat = float(location.loc[location['city_ascii'] == self.city]['lat'])
+                    self.locallon = float(location.loc[location['city_ascii'] == self.city]['lng'])
+                    self.packet = sniff(offline = url[0])
+                    self.updateOffline()
                 break
             elif len(url[0]) == 0:                          #Cancel Button Selected
                 break
@@ -290,8 +338,6 @@ class Main(QMainWindow):
         '''
         temp  = []
         repeat_ip = []
-        locallat = 1.8504
-        locallon = 102.933
         for i in self.packet:
             if IP in i:
                 #尽可能减少getLanLon的进入（耗时长）
@@ -302,16 +348,16 @@ class Main(QMainWindow):
                 else:
                     repeat_ip.append((src,dst))
                 if src != None: 
-                    slat,slon,cn_src = self.getLatLon(src)
+                    slat,slon,city_src = self.getLatLon(src)
                 else:           
-                    slat,slon = locallat,locallon
-                    cn_src = 'Batu Pahat'
+                    slat,slon = self.locallat,self.locallon
+                    city_src = self.city
                 if dst != None: 
-                    dlat,dlon,cn_dst = self.getLatLon(dst)
+                    dlat,dlon,city_dst = self.getLatLon(dst)
                 else:           
-                    dlat,dlon = locallat,locallon
-                    cn_dst = 'Batu Pahat'
-                temp.append([[slon,dlon],[slat,dlat],cn_src,cn_dst])
+                    dlat,dlon = self.locallat,self.locallon
+                    city_dst = self.city
+                temp.append([[slon,dlon],[slat,dlat],city_src,city_dst])
         map = plotFlow(temp)
         toolbar = Nav(map,self)
         layout = QVBoxLayout()
@@ -348,9 +394,6 @@ class Main(QMainWindow):
         sth = getFlowInfo(self.packet)
         print(sth)
 
-
-    def packetPredict(self):
-        pass
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
