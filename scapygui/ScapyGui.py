@@ -8,8 +8,6 @@ from scapy.all import *
 from packetcatch import packetsniff
 from Geo.geo import *
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Nav
-from FlowCheck.run import getFlowInfo
-
 
 class Main(QMainWindow):
     def __init__(self):
@@ -391,8 +389,13 @@ class Main(QMainWindow):
         else: return ip
     
     def flowPredict(self):
+        from FlowCheck.dl import preprocess,predict,getFlowInfo
         sth = getFlowInfo(self.packet)
-        print(sth)
+        target = []
+        for i in sth['Flow']:
+            i.attrforDL()
+            target.append(preprocess(i.features))
+        result = predict(target)
 
 
 if __name__ == '__main__':

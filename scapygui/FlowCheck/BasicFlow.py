@@ -37,26 +37,26 @@ class BasicFlow:
         self.stat = {"fwdPktStats":[],"bwdPktStats":[],"flowIAT":[],"forwardIAT":[],
                      "backwardIAT":[],"flowLengthStats":[],"flowActive":[],"flowIdle":[]}
         # -----------------------------------------
-        self.sfLastPacketTS = -1
-        self.sfCount = 0
-        self.sfAcHelper = -1
+        #self.sfLastPacketTS = -1
+        #self.sfCount = 0
+        #self.sfAcHelper = -1
         # ------------------------------------------
-        self.fbulkDuration = 0
-        self.fbulkPacketCount = 0
-        self.fbulkSizeTotal = 0
-        self.fbulkStateCount = 0
-        self.fbulkPacketCountHelper = 0
-        self.fbulkStartHelper = 0
-        self.fbulkSizeHelper = 0
-        self.flastBulkTS = 0
-        self.bbulkDuration = 0
-        self.bbulkPacketCount = 0
-        self.bbulkSizeTotal = 0
-        self.bbulkStateCount = 0
-        self.bbulkPacketCountHelper = 0
-        self.bbulkStartHelper = 0
-        self.bbulkSizeHelper = 0
-        self.blastBulkTS = 0
+        #self.fbulkDuration = 0
+        #self.fbulkPacketCount = 0
+        #self.fbulkSizeTotal = 0
+        #self.fbulkStateCount = 0
+        #self.fbulkPacketCountHelper = 0
+        #self.fbulkStartHelper = 0
+        #self.fbulkSizeHelper = 0
+        #self.flastBulkTS = 0
+        #self.bbulkDuration = 0
+        #self.bbulkPacketCount = 0
+        #self.bbulkSizeTotal = 0
+        #self.bbulkStateCount = 0
+        #self.bbulkPacketCountHelper = 0
+        #self.bbulkStartHelper = 0
+        #self.bbulkSizeHelper = 0
+        #self.blastBulkTS = 0
         if status == 1:
             self.isBidirectional = arg[0]
             self.firstPacket(arg[1])
@@ -78,9 +78,9 @@ class BasicFlow:
 
     def firstPacket(self,packet):
         #packet class : BasicPacketInfo
-        self.updateFlowBulk(packet)
-        self.detectUpdateSubflows(packet)
-        self.checkFlags(packet)
+        #self.updateFlowBulk(packet)
+        #self.detectUpdateSubflows(packet)
+        #self.checkFlags(packet)
 
         self.flowStartTime = packet.timeStamp
         self.flowLastSeen = packet.timeStamp
@@ -104,8 +104,8 @@ class BasicFlow:
             self.forwardLastSeen = packet.timeStamp
             self.forwardBytes += packet.payloadBytes
             self.forward.append(packet)
-            if packet.flagPSH: self.fPSH_cnt+=1
-            if packet.flagURG: self.fURG_cnt+=1
+            #if packet.flagPSH: self.fPSH_cnt+=1
+            #if packet.flagURG: self.fURG_cnt+=1
 
         else:
             self.Init_Win_bytes_backward = packet.TCPWindow
@@ -115,15 +115,15 @@ class BasicFlow:
             self.backwardLastSeen = packet.timeStamp
             self.backwardBytes += packet.payloadBytes
             self.backward.append(packet)
-            if packet.flagPSH: self.bPSH_cnt+=1
-            if packet.flagURG: self.bURG_cnt+=1
+            #if packet.flagPSH: self.bPSH_cnt+=1
+            #if packet.flagURG: self.bURG_cnt+=1
         self.ptc = packet.ptc
         self.flowID = packet.flowID
 
     def addPacket(self,packet):
-        self.updateFlowBulk(packet)
-        self.detectUpdateSubflows(packet)
-        self.checkFlags(packet)
+        #self.updateFlowBulk(packet)
+        #self.detectUpdateSubflows(packet)
+        #self.checkFlags(packet)
         currentTS = packet.timeStamp
         if self.isBidirectional:
             self.stat['flowLengthStats'].append(packet.payloadBytes)
@@ -167,9 +167,9 @@ class BasicFlow:
         else:
             return 0
 
-    def getDownUpRatio(self):
-        if (len(self.forward) > 0):
-            return len(self.backward)/len(self.forward)
+    #def getDownUpRatio(self):
+    #    if (len(self.forward) > 0):
+    #        return len(self.backward)/len(self.forward)
 
     def getAvgPacketSize(self):
         if self.packetCount() > 0:
@@ -189,138 +189,138 @@ class BasicFlow:
         else:
             return 0
 
-    def checkFlags(self,packet):
-        if (packet.flagFIN): self.flagCounts[0] +=1
-        if (packet.flagSYN): self.flagCounts[1] +=1
-        if (packet.flagRST): self.flagCounts[2] +=1
-        if (packet.flagPSH): self.flagCounts[3] +=1
-        if (packet.flagACK): self.flagCounts[4] +=1
-        if (packet.flagURG): self.flagCounts[5] +=1
-        if (packet.flagCWR): self.flagCounts[6] +=1
-        if (packet.flagECE): self.flagCounts[7] +=1
+    #def checkFlags(self,packet):
+    #    if (packet.flagFIN): self.flagCounts[0] +=1
+    #    if (packet.flagSYN): self.flagCounts[1] +=1
+    #    if (packet.flagRST): self.flagCounts[2] +=1
+    #    if (packet.flagPSH): self.flagCounts[3] +=1
+    #    if (packet.flagACK): self.flagCounts[4] +=1
+    #    if (packet.flagURG): self.flagCounts[5] +=1
+    #    if (packet.flagCWR): self.flagCounts[6] +=1
+    #    if (packet.flagECE): self.flagCounts[7] +=1
 
-    def getSflow(self,fob):
-        if (self.sfCount <= 0): return 0
-        else:
-            #ForwardByte
-            if (fob == "fb"): return self.forwardBytes/self.sfCount
-            #ForwardPacket
-            if (fob == "fp"): return len(self.forward)/self.sfCount
-            #BackwardByte
-            if (fob == "bb"): return self.backwardBytes/self.sfCount
-            #BackwardPacket
-            if (fob == "bp"): return len(self.backward)/self.sfCount
+    #def getSflow(self,fob):
+    #    if (self.sfCount <= 0): return 0
+    #    else:
+    #        #ForwardByte
+    #        if (fob == "fb"): return self.forwardBytes/self.sfCount
+    #        #ForwardPacket
+    #        if (fob == "fp"): return len(self.forward)/self.sfCount
+    #        #BackwardByte
+    #        if (fob == "bb"): return self.backwardBytes/self.sfCount
+    #        #BackwardPacket
+    #       if (fob == "bp"): return len(self.backward)/self.sfCount
 
-    def detectUpdateSubflows(self,packet):
-        if self.sfLastPacketTS == -1:
-            self.sfLastPacketTS = packet.timeStamp
-            self.sfAcHelper = packet.timeStamp
-        if (packet.timeStamp - self.sfLastPacketTS/1000000 > 1.0):
-            self.sfCount +=1
-            self.updateActiveIdleTime(packet.timeStamp - self.sfLastPacketTS,5000000)
-            self.sfAcHelper = packet.timeStamp
-        self.sfLastPacketTS = packet.timeStamp
+    #def detectUpdateSubflows(self,packet):
+    #    if self.sfLastPacketTS == -1:
+    #        self.sfLastPacketTS = packet.timeStamp
+    #        self.sfAcHelper = packet.timeStamp
+    #    if (packet.timeStamp - self.sfLastPacketTS/1000000 > 1.0):
+    #        self.sfCount +=1
+    #        self.updateActiveIdleTime(packet.timeStamp - self.sfLastPacketTS,5000000)
+    #        self.sfAcHelper = packet.timeStamp
+    #    self.sfLastPacketTS = packet.timeStamp
 
     # bulk
-    def updateFlowBulk(self,packet):
-        if (self.src == packet.src):
-            self.updateForwardBulk(packet,self.blastBulkTS)
-        else:
-            self.updateBackwardBulk(packet,self.flastBulkTS)
+    #def updateFlowBulk(self,packet):
+    #    if (self.src == packet.src):
+    #        self.updateForwardBulk(packet,self.blastBulkTS)
+    #    else:
+    #        self.updateBackwardBulk(packet,self.flastBulkTS)
 
-    def updateForwardBulk(self,packet,tsOfLastBulkInOther):
-        size = packet.payloadBytes
-        if (tsOfLastBulkInOther > self.fbulkStartHelper): self.fbulkStartHelper = 0
-        if (size<=0): return
-        if (self.fbulkStartHelper == 0):
-            self.fbulkStartHelper = packet.timeStamp
-            self.fbulkPacketCountHelper = 1
-            self.fbulkSizeHelper = size
-            self.flastBulkTS = packet.timeStamp
-        else:
-            if((packet.timeStamp - self.flastBulkTS)/1000000 >1.0):
-                self.fbulkStartHelper = packet.timeStamp
-                self.flastBulkTS = packet.timeStamp
-                self.fbulkPacketCountHelper = 1
-                self.fbulkSizeHelper = size
-            else:
-                self.fbulkPacketCountHelper +=1
-                self.fbulkSizeHelper +=size
-                if (self.fbulkPacketCountHelper == 4):
-                    self.fbulkStateCount +=1
-                    self.fbulkPacketCount += self.fbulkPacketCountHelper
-                    self.fbulkSizeTotal += self.fbulkSizeHelper
-                    self.fbulkDuration += packet.timeStamp - self.fbulkStartHelper
-                elif (self.fbulkPacketCountHelper >4):
-                    self.fbulkPacketCount +=1
-                    self.fbulkSizeTotal += size
-                    self.fbulkDuration += packet.timeStamp - self.flastBulkTS
-                self.flastBulkTS = packet.timeStamp
+    #def updateForwardBulk(self,packet,tsOfLastBulkInOther):
+    #    size = packet.payloadBytes
+    #    if (tsOfLastBulkInOther > self.fbulkStartHelper): self.fbulkStartHelper = 0
+    #    if (size<=0): return
+    #    if (self.fbulkStartHelper == 0):
+    #        self.fbulkStartHelper = packet.timeStamp
+    #        self.fbulkPacketCountHelper = 1
+    #        self.fbulkSizeHelper = size
+    #        self.flastBulkTS = packet.timeStamp
+    #    else:
+    #        if((packet.timeStamp - self.flastBulkTS)/1000000 >1.0):
+    #            self.fbulkStartHelper = packet.timeStamp
+    #            self.flastBulkTS = packet.timeStamp
+    #            self.fbulkPacketCountHelper = 1
+    #            self.fbulkSizeHelper = size
+    #        else:
+    #            self.fbulkPacketCountHelper +=1
+    #            self.fbulkSizeHelper +=size
+    #            if (self.fbulkPacketCountHelper == 4):
+    #                self.fbulkStateCount +=1
+    #                self.fbulkPacketCount += self.fbulkPacketCountHelper
+    #                self.fbulkSizeTotal += self.fbulkSizeHelper
+    #                self.fbulkDuration += packet.timeStamp - self.fbulkStartHelper
+    #            elif (self.fbulkPacketCountHelper >4):
+    #                self.fbulkPacketCount +=1
+    #                self.fbulkSizeTotal += size
+    #                self.fbulkDuration += packet.timeStamp - self.flastBulkTS
+    #            self.flastBulkTS = packet.timeStamp
 
-    def updateBackwardBulk(self,packet,tsOfLastBulkInOther):
-        size = packet.payloadBytes
-        if (tsOfLastBulkInOther > self.bbulkStartHelper): self.bbulkStartHelper = 0
-        if (size<=0): return
-        if (self.bbulkStartHelper == 0):
-            self.bbulkStartHelper = packet.timeStamp
-            self.bbulkPacketCountHelper = 1
-            self.bbulkSizeHelper = size
-            self.blastBulkTS = packet.timeStamp
-        else:
-            if((packet.timeStamp - self.blastBulkTS)/1000000 >1.0):
-                self.bbulkStartHelper = packet.timeStamp
-                self.blastBulkTS = packet.timeStamp
-                self.bbulkPacketCountHelper = 1
-                self.bbulkSizeHelper = size
-            else:
-                self.bbulkPacketCountHelper +=1
-                self.bbulkSizeHelper +=size
-                if (self.bbulkPacketCountHelper == 4):
-                    self.bbulkStateCount +=1
-                    self.bbulkPacketCount += self.bbulkPacketCountHelper
-                    self.bbulkSizeTotal += self.bbulkSizeHelper
-                    self.bbulkDuration += packet.timeStamp - self.bbulkStartHelper
-                elif (self.bbulkPacketCountHelper >4):
-                    self.bbulkPacketCount +=1
-                    self.bbulkSizeTotal += size
-                    self.bbulkDuration += packet.timeStamp - self.blastBulkTS
-                self.blastBulkTS = packet.timeStamp
+    #def updateBackwardBulk(self,packet,tsOfLastBulkInOther):
+    #    size = packet.payloadBytes
+    #    if (tsOfLastBulkInOther > self.bbulkStartHelper): self.bbulkStartHelper = 0
+    #    if (size<=0): return
+    #    if (self.bbulkStartHelper == 0):
+    #        self.bbulkStartHelper = packet.timeStamp
+    #        self.bbulkPacketCountHelper = 1
+    #        self.bbulkSizeHelper = size
+    #        self.blastBulkTS = packet.timeStamp
+    #    else:
+    #        if((packet.timeStamp - self.blastBulkTS)/1000000 >1.0):
+    #            self.bbulkStartHelper = packet.timeStamp
+    #            self.blastBulkTS = packet.timeStamp
+    #            self.bbulkPacketCountHelper = 1
+    #            self.bbulkSizeHelper = size
+    #        else:
+    #            self.bbulkPacketCountHelper +=1
+    #            self.bbulkSizeHelper +=size
+    #            if (self.bbulkPacketCountHelper == 4):
+    #                self.bbulkStateCount +=1
+    #                self.bbulkPacketCount += self.bbulkPacketCountHelper
+    #                self.bbulkSizeTotal += self.bbulkSizeHelper
+    #                self.bbulkDuration += packet.timeStamp - self.bbulkStartHelper
+    #            elif (self.bbulkPacketCountHelper >4):
+    #                self.bbulkPacketCount +=1
+    #                self.bbulkSizeTotal += size
+    #                self.bbulkDuration += packet.timeStamp - self.blastBulkTS
+    #            self.blastBulkTS = packet.timeStamp
 
-    def fAvgPerBulk(self,bp):
-        if (self.fbulkStateCount != 0):
-            return self.fbulkSizeTotal/self.fbulkStateCount if (bp == 'b') else self.fbulkPacketCount/self.fbulkStateCount
-        else: return 0
+    #def fAvgPerBulk(self,bp):
+    #    if (self.fbulkStateCount != 0):
+    #        return self.fbulkSizeTotal/self.fbulkStateCount if (bp == 'b') else self.fbulkPacketCount/self.fbulkStateCount
+    #    else: return 0
 
-    def fAvgBulkRate(self):
-        if (self.fbulkDuration != 0):
-            return self.fbulkSizeTotal / (self.fbulkDuration/1000000)
-        else: return 0
+    #def fAvgBulkRate(self):
+    #    if (self.fbulkDuration != 0):
+    #        return self.fbulkSizeTotal / (self.fbulkDuration/1000000)
+    #    else: return 0
 
-    def bAvgPerBulk(self,bp):
-        if (self.bbulkStateCount != 0):
-            return self.bbulkSizeTotal/self.bbulkStateCount if (bp == 'b') else self.bbulkPacketCount/self.bbulkStateCount
-        else: return 0
+    #def bAvgPerBulk(self,bp):
+    #    if (self.bbulkStateCount != 0):
+    #        return self.bbulkSizeTotal/self.bbulkStateCount if (bp == 'b') else self.bbulkPacketCount/self.bbulkStateCount
+    #    else: return 0
 
-    def bAvgBulkRate(self):
-        if (self.bbulkDuration != 0):
-            return self.bbulkSizeTotal / (self.bbulkDuration/1000000)
-        else: return 0
+    #def bAvgBulkRate(self):
+    #    if (self.bbulkDuration != 0):
+    #        return self.bbulkSizeTotal / (self.bbulkDuration/1000000)
+    #    else: return 0
 
-    def updateActiveIdleTime(self,current,threshold):
-        if (current - self.endActiveTime > threshold):
-            if (self.endActiveTime - self.startActiveTime) >0:
-                self.stat['flowActive'].append(self.endActiveTime - self.startActiveTime)
-            self.stat['flowIdle'].append(current - self.endActiveTime)
-            self.startActiveTime = current
-            self.endActiveTime = current
-        else:
-            self.endActiveTime = current
+    #def updateActiveIdleTime(self,current,threshold):
+    #   if (current - self.endActiveTime > threshold):
+    #       if (self.endActiveTime - self.startActiveTime) >0:
+    #            self.stat['flowActive'].append(self.endActiveTime - self.startActiveTime)
+    #        self.stat['flowIdle'].append(current - self.endActiveTime)
+    #        self.startActiveTime = current
+    #        self.endActiveTime = current
+    #    else:
+    #        self.endActiveTime = current
 
-    def endActiveIdleTime(self,current,threshold,flowTO,isEnd):
-        if(self.endActiveTime - self.startActiveTime) > 0:
-            self.stat['flowActive'].append(self.endActiveTime - self.startActiveTime)
-        if (not isEnd and (flowTO - (self.endActiveTime - self.flowStartTime))>0):
-            self.stat['flowIdle'].append(flowTO - (self.endActiveTime- self.flowStartTime))
+    #def endActiveIdleTime(self,current,threshold,flowTO,isEnd):
+    #    if(self.endActiveTime - self.startActiveTime) > 0:
+    #        self.stat['flowActive'].append(self.endActiveTime - self.startActiveTime)
+    #    if (not isEnd and (flowTO - (self.endActiveTime - self.flowStartTime))>0):
+    #        self.stat['flowIdle'].append(flowTO - (self.endActiveTime- self.flowStartTime))
 
 
     def FlowBasedFeatures(self):
@@ -475,6 +475,107 @@ class BasicFlow:
             self.features.append(np.array(self.stat['flowIdle']).std())
             self.features.append(max(self.stat['flowIdle']))
             self.features.append(min(self.stat['flowIdle']))
+        else:
+            self.features.append(0)
+            self.features.append(0)
+            self.features.append(0)
+            self.features.append(0)
+
+    def attrforDL(self):
+        self.features = []
+        self.features.append(self.dport)
+        flowDuration = self.flowLastSeen - self.flowStartTime
+        if flowDuration == 0:
+            flowDuration = 0.1 #Assume
+        self.features.append(flowDuration)
+        self.features.append(len(self.stat['fwdPktStats']))
+        self.features.append(len(self.stat['bwdPktStats']))
+        self.features.append(sum(self.stat['fwdPktStats']))
+        self.features.append(sum(self.stat['bwdPktStats']))
+        if len(self.stat['fwdPktStats']) >0:
+            self.features.append(max(self.stat['fwdPktStats']))
+            self.features.append(min(self.stat['fwdPktStats']))
+            self.features.append(sum(self.stat['fwdPktStats'])/len(self.stat['fwdPktStats']))
+            self.features.append(np.array(self.stat['fwdPktStats']).std())
+        else:
+            self.features.append(0)
+            self.features.append(0)
+            self.features.append(0)
+            self.features.append(0)
+        if len(self.stat['bwdPktStats']) >0:
+            self.features.append(max(self.stat['bwdPktStats']))
+            self.features.append(min(self.stat['bwdPktStats']))
+            self.features.append(sum(self.stat['bwdPktStats'])/len(self.stat['bwdPktStats']))
+            self.features.append(np.array(self.stat['bwdPktStats']).std())
+        else:
+            self.features.append(0)
+            self.features.append(0)
+            self.features.append(0)
+            self.features.append(0)
+
+        self.features.append((self.forwardBytes+self.backwardBytes)/(flowDuration/1000000))
+        self.features.append(self.packetCount()/(flowDuration/1000000))
+        self.features.append(sum(self.stat['flowIAT'])/len(self.stat['flowIAT']))
+        self.features.append(np.array(self.stat['flowIAT']).std())
+        self.features.append(max(self.stat['flowIAT']))
+        self.features.append(min(self.stat['flowIAT']))
+        if len(self.forward)>1:
+            self.features.append(sum(self.stat['forwardIAT']))
+            self.features.append(sum(self.stat['forwardIAT'])/len(self.stat['forwardIAT']))
+            self.features.append(np.array(self.stat['forwardIAT']).std())
+            self.features.append(max(self.stat['forwardIAT']))
+            self.features.append(min(self.stat['forwardIAT']))
+        else:
+            self.features.append(0)
+            self.features.append(0)
+            self.features.append(0)
+            self.features.append(0)
+            self.features.append(0)
+
+        if len(self.backward)>1:
+            self.features.append(sum(self.stat['backwardIAT']))
+            self.features.append(sum(self.stat['backwardIAT'])/len(self.stat['backwardIAT']))
+            self.features.append(np.array(self.stat['backwardIAT']).std())
+            self.features.append(max(self.stat['backwardIAT']))
+            self.features.append(min(self.stat['backwardIAT']))
+        else:
+            self.features.append(0)
+            self.features.append(0)
+            self.features.append(0)
+            self.features.append(0)
+            self.features.append(0)
+
+        self.features.append(self.fHeaderBytes)
+        self.features.append(self.bHeaderBytes)
+        self.features.append(self.getPktsPerSecond('f'))
+        self.features.append(self.getPktsPerSecond('b'))
+
+        if (len(self.forward)>0 or len(self.backward)>0):
+            self.features.append(min(self.stat['flowLengthStats']))
+            self.features.append(max(self.stat['flowLengthStats']))
+            self.features.append(sum(self.stat['flowLengthStats'])/len(self.stat['flowLengthStats']))
+            self.features.append(np.array(self.stat['flowLengthStats']).std())
+            self.features.append(np.array(self.stat['flowLengthStats']).var())
+        else:
+            self.features.append(0)
+            self.features.append(0)
+            self.features.append(0)
+            self.features.append(0)
+            self.features.append(0)
+
+        self.features.append(self.getAvgPacketSize())   #Average Packet Size
+        self.features.append(self.fAvgSegmentSize())    #Avg Fordward Segment
+        self.features.append(self.bAvgSegmentSize())    #Avg Backward Segment
+        self.features.append(self.Init_Win_bytes_forward)
+        self.features.append(self.Init_Win_bytes_backward)
+        self.features.append(self.Act_data_pkt_forward)
+        self.features.append(self.min_seg_size_forward)
+        
+        if len(self.stat['flowActive']) >0:
+            self.features.append(sum(self.stat['flowActive'])/len(self.stat['flowActive']))
+            self.features.append(np.array(self.stat['flowActive']).std())
+            self.features.append(max(self.stat['flowActive']))
+            self.features.append(min(self.stat['flowActive']))
         else:
             self.features.append(0)
             self.features.append(0)
