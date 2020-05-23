@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>838</width>
-    <height>603</height>
+    <height>528</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -59,7 +59,7 @@
      <rect>
       <x>0</x>
       <y>260</y>
-      <width>541</width>
+      <width>731</width>
       <height>221</height>
      </rect>
     </property>
@@ -72,8 +72,8 @@
    <widget class="QPushButton" name="sniffStop">
     <property name="geometry">
      <rect>
-      <x>630</x>
-      <y>430</y>
+      <x>750</x>
+      <y>280</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -121,7 +121,6 @@
      <string>Check</string>
     </property>
     <addaction name="actionFlow"/>
-    <addaction name="actionPacket"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuPlot"/>

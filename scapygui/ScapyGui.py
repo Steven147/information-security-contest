@@ -9,6 +9,7 @@ from packetcatch import packetsniff
 from Geo.geo import *
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Nav
 
+# signal,slot
 class Main(QMainWindow):
     def __init__(self):
         '''
@@ -20,12 +21,12 @@ class Main(QMainWindow):
         super(Main,self).__init__()
         uic.loadUi('main.ui',self)                                              #读取.ui文件（于QtDesigner设计）
         self.setWindowTitle("Something like Scapy")
-        self.setFixedSize(800,800)
         #Behavior,一些widget的特性设置
         self.summary.setSelectionBehavior(QAbstractItemView.SelectRows)         #点击表格时选择整行
         self.summary.verticalHeader().setVisible(False)                         #表格自带的行号隐藏
         self.summary.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)  #表格大小根据所拥有的内容自动调整
         self.summary.horizontalHeader().setStretchLastSection(True)             #表格最后一列自动拉满
+        self.summary.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.analysis.setHeaderHidden(True)                                     #QTreeWidget列头隐藏
         #signal,各个信号与函数的连接
         self.summary.cellClicked.connect(self.moreInfo)                         #点击单行表格显示该数据的详细信息
@@ -33,7 +34,7 @@ class Main(QMainWindow):
         self.actionOpen.triggered.connect(self.offlineSniff)                    #menuBar下选择指定pcap文件读取分析
         self.actionSave.triggered.connect(self.save)                            #menuBar下将捕抓的数据包储存
         self.actionLocation.triggered.connect(self.geoGet)
-        self.actionFlow.triggered.connect(self.flowPredict)
+        self.actionFlow.triggered.connect(self.flowPredictStart)
         self.filterLine.returnPressed.connect(self.filter)                      #QLineEdit接收到回车后将发送信号进行处理
         #Layout setting
         self.layout = QGridLayout()                                             #排版信息
@@ -93,7 +94,8 @@ class Main(QMainWindow):
         elif IP in packet:
             self.summary.setItem(rowposition,1,QTableWidgetItem(packet[IP].src))
             if (packet[IP].proto == 1): 
-                self.summary.setItem(rowposition,2,QTableWidgetItem('ICMP'))                            #ICMP包
+                action = ICMP().get_field('type')
+                self.summary.setItem(rowposition,2,QTableWidgetItem('ICMP (' + action.i2s[packet[ICMP].type] + ')'))                            #ICMP包
             elif (packet[IP].proto == 6): 
                 self.summary.setItem(rowposition,2,QTableWidgetItem('TCP'))                             #TCP包
                 temp = ""
@@ -114,6 +116,28 @@ class Main(QMainWindow):
                 self.summary.setItem(rowposition,5,QTableWidgetItem(info))
             self.summary.setItem(rowposition,3,QTableWidgetItem(packet[IP].dst))
 
+        elif IPv6 in packet:
+            self.summary.setItem(rowposition,1,QTableWidgetItem(packet[IPv6].src))
+            if (packet[IPv6].nh == 6): 
+                self.summary.setItem(rowposition,2,QTableWidgetItem('TCP'))                             #TCP包
+                temp = ""
+                for k in packet[TCP].flags:                                                             #TCP包中flags的状况
+                    if k == 'C': temp += 'CWR,'
+                    if k == 'E': temp += 'ECE,'
+                    if k == 'U': temp += 'URG,'
+                    if k == 'A': temp += 'ACK,'
+                    if k == 'P': temp += 'PSH,'
+                    if k == 'R': temp += 'RST,'
+                    if k == 'S': temp += 'SYN,'
+                    if k == 'F': temp += 'FIN,'
+                info = str(packet[TCP].sport) + '->' + str(packet[TCP].dport) + '[' + temp[:-1] + ']'   #显示示例 54376->443['PSH,ACK']
+                self.summary.setItem(rowposition,5,QTableWidgetItem(info))
+            elif (packet[IPv6].nh == 17):                                                              #UDP包
+                self.summary.setItem(rowposition,2,QTableWidgetItem('UDP'))
+                info = str(packet[UDP].sport) + '->' + str(packet[UDP].dport)
+                self.summary.setItem(rowposition,5,QTableWidgetItem(info))
+            self.summary.setItem(rowposition,3,QTableWidgetItem(packet[IPv6].dst))
+
     def moreInfo(self,line,col):
         '''
         QTreeWidget self.analysis 的设置，当在QTableWidget(self.summary)选中某行后接收到信号，其中line及col表示是选中的是第几行第几列
@@ -125,63 +149,102 @@ class Main(QMainWindow):
           -child1
         -ip(QTreeWidgetItem)
           -child2
+          -child2
         child1添加在eth的方法 -> eth.addChild(QTreeWidgetItem([要添加的字符串]))
         eth添加在self.analysis的方法 -> self.analysis.addTopLevelItem(eth)
         '''
         packet = self.packet[int(self.summary.item(line,0).text())]
         self.analysis.clear()
         eth = QTreeWidgetItem(['Ethernel II'])                                      #数据链路层
+        field = Ether().get_field('type')
         eth.addChild(QTreeWidgetItem(["Source: " + packet[Ether].src]))
         eth.addChild(QTreeWidgetItem(["Destination: " + packet[Ether].dst]))
-        eth.addChild(QTreeWidgetItem(["Type: " + str(packet[Ether].type)]))
+        eth.addChild(QTreeWidgetItem(["Type: " + str(hex(packet[Ether].type)) + '('+ field.i2s[packet.type]+')']))
         self.analysis.addTopLevelItem(eth)
         #流量检测只检测TCP,UDP的包，非以上两者的包是否要在则例分析与解释?
         if IP in packet:
+            field = IP().get_field('proto')                                         #IP proto transfer to proto name
             ip = QTreeWidgetItem(["IP version 4"])                                  #IP层（其中有可能是IPv6，可以再修改），以下可以在补充，如IP flags
-            ip.addChild(QTreeWidgetItem(["Source:"+packet[IP].src]))                #IP源
-            ip.addChild(QTreeWidgetItem(["Destination:"+packet[IP].dst]))           #IP目的
-            ip.addChild(QTreeWidgetItem(["HeaderLength:"+str(packet[IP].ihl*4)]))   #IP头信息
-            ip.addChild(QTreeWidgetItem(["Type Of Service:"+str(packet[IP].tos)]))  #IP Type Of Service
-            ip.addChild(QTreeWidgetItem(["Identification:"+str(packet[IP].id)]))    #IP 认证
+            ip.addChild(QTreeWidgetItem(["Source: "+packet[IP].src]))               #IP源
+            ip.addChild(QTreeWidgetItem(["Destination: "+packet[IP].dst]))          #IP目的
+            ip.addChild(QTreeWidgetItem(["Header Length: "+str(packet[IP].ihl*4)]))  #IP头信息
+            ip.addChild(QTreeWidgetItem(["Type Of Service: "+str(hex(packet[IP].tos))])) #IP Type Of Service
+            ip.addChild(QTreeWidgetItem(["Identification: "+str(packet[IP].id)]))   #IP 认证
+            ext = " Unused"
+            for i in packet[IP].flags:
+                if i == "DF": 
+                    ext = " Don't Fragment"
+                    break
+                if i == "MF": 
+                    ext = " More Fragment"
+                    break
+            ip.addChild(QTreeWidgetItem(["Flags: "+str(packet[IP].flags) + ext]))   #Flag
+            ip.addChild(QTreeWidgetItem(["Fragment: "+str(packet[IP].frag)]))       #分段
+            ip.addChild(QTreeWidgetItem(["Time to live: "+str(packet[IP].ttl)]))    #Time To Live
+            ip.addChild(QTreeWidgetItem(["Protocol: "+str(hex(packet[IP].proto)) + '(' + field.i2s[packet[IP].proto] + ')'])) #Next Protocol used 
+            ip.addChild(QTreeWidgetItem(["Checksum: "+str(hex(packet[IP].chksum))])) #Checksum
             self.analysis.addTopLevelItem(ip)
         elif ARP in packet:
+            p_field = ARP().get_field('ptype')
+            op_field = ARP().get_field('op')
             ip = QTreeWidgetItem(['Address Resolution Protocol'])                   #ARP层,以下都是根据wireshark格式复写
-            ip.addChild(QTreeWidgetItem(["Hardware type:"+str(packet[ARP].hwtype)]))
-            ip.addChild(QTreeWidgetItem(["Protocol Type:"+str(packet[ARP].ptype)]))
-            ip.addChild(QTreeWidgetItem(["Hardware Size:"+str(packet[ARP].hwlen)]))
-            ip.addChild(QTreeWidgetItem(["Protocol Size:"+str(packet[ARP].plen)]))
-            ip.addChild(QTreeWidgetItem(["Opcode:"+str(packet[ARP].op)]))
-            ip.addChild(QTreeWidgetItem(["Sender MAC address:"+str(packet[ARP].hwsrc)]))
-            ip.addChild(QTreeWidgetItem(["Sender IP address:"+str(packet[ARP].psrc)]))
-            ip.addChild(QTreeWidgetItem(["Target MAC address:"+str(packet[ARP].hwdst)]))
-            ip.addChild(QTreeWidgetItem(["Target IP address:"+str(packet[ARP].pdst)]))
+            ip.addChild(QTreeWidgetItem(["Hardware type: "+str(hex(packet[ARP].hwtype))]))
+            ip.addChild(QTreeWidgetItem(["Protocol Type: "+str(hex(packet[ARP].ptype)) + '(' + p_field.i2s[packet[ARP].ptype]+ ')']))
+            ip.addChild(QTreeWidgetItem(["Hardware Size: "+str(packet[ARP].hwlen)]))
+            ip.addChild(QTreeWidgetItem(["Protocol Size: "+str(packet[ARP].plen)]))
+            ip.addChild(QTreeWidgetItem(["Opcode: "+ str(packet[ARP].op) + '(' + op_field.i2s[packet[ARP].op] +')']))
+            ip.addChild(QTreeWidgetItem(["Sender MAC address: "+str(packet[ARP].hwsrc)]))
+            ip.addChild(QTreeWidgetItem(["Sender IP address: "+str(packet[ARP].psrc)]))
+            ip.addChild(QTreeWidgetItem(["Target MAC address: "+str(packet[ARP].hwdst)]))
+            ip.addChild(QTreeWidgetItem(["Target IP address: "+str(packet[ARP].pdst)]))
             self.analysis.addTopLevelItem(ip)
         elif IPv6 in packet:
-            ip = QTreeWidgetItem("[Ip version 6]")                                  #未完整
+            ip = QTreeWidgetItem(["Ip version 6"])
+            nh_field = IPv6().get_field('nh')
+            ip.addChild(QTreeWidgetItem(["Source: "+str(packet[IPv6].src)]))
+            ip.addChild(QTreeWidgetItem(["Destination: "+str(packet[IPv6].dst)]))
+            ip.addChild(QTreeWidgetItem(["Traffic Class: "+str(hex(packet[IPv6].tc))]))
+            ip.addChild(QTreeWidgetItem(["Flow Label: "+str(hex(packet[IPv6].fl))]))
+            ip.addChild(QTreeWidgetItem(["Payload Length: "+str(packet[IPv6].plen)]))
+            ip.addChild(QTreeWidgetItem(["Next Header: "+str(packet[IPv6].nh) + '(' + nh_field.i2s[packet[IPv6].nh] + ')']))
+            ip.addChild(QTreeWidgetItem(["Hop Limit: "+str(packet[IPv6].hlim)]))
             self.analysis.addTopLevelItem(ip)
 
         if TCP in packet:
             tp = QTreeWidgetItem(["Transport Control Protocol"])                    #TCP层，以下内容根据Wireshark格式复写
-            tp.addChild(QTreeWidgetItem(['Source Port:' + str(packet[TCP].sport)]))
-            tp.addChild(QTreeWidgetItem(['Destination Port:' + str(packet[TCP].dport)]))
-            tp.addChild(QTreeWidgetItem(['Sequence Number:' + str(packet[TCP].seq)]))
-            tp.addChild(QTreeWidgetItem(['Acknowledgment Number:' + str(packet[TCP].ack)]))
-            tp.addChild(QTreeWidgetItem(['Header Length:' + str(packet[TCP].dataofs)]))
-            tp.addChild(QTreeWidgetItem(['Flags:' + str(packet[TCP].flags)]))
-            #more flag information ..?                                              #TCP各个flag的补充
-            tp.addChild(QTreeWidgetItem(['Windows Size:' + str(packet[TCP].window)]))
-            tp.addChild(QTreeWidgetItem(['Checksum:' + str(packet[TCP].chksum)]))
-            tp.addChild(QTreeWidgetItem(['Urgent Pointer:' + str(packet[TCP].urgptr)]))
+            tp.addChild(QTreeWidgetItem(['Source Port: ' + str(packet[TCP].sport)]))
+            tp.addChild(QTreeWidgetItem(['Destination Port: ' + str(packet[TCP].dport)]))
+            tp.addChild(QTreeWidgetItem(['Sequence Number: ' + str(packet[TCP].seq)]))
+            tp.addChild(QTreeWidgetItem(['Acknowledgment Number: ' + str(packet[TCP].ack)]))
+            tp.addChild(QTreeWidgetItem(['Header Length: ' + str(packet[TCP].dataofs)]))
+            temp = ""
+            for k in packet[TCP].flags:                                                             #TCP包中flags的状况
+                if k == 'C': temp += 'CWR,'
+                if k == 'E': temp += 'ECE,'
+                if k == 'U': temp += 'URG,'
+                if k == 'A': temp += 'ACK,'
+                if k == 'P': temp += 'PSH,'
+                if k == 'R': temp += 'RST,'
+                if k == 'S': temp += 'SYN,'
+                if k == 'F': temp += 'FIN,'
+            tp.addChild(QTreeWidgetItem(['Flags: ' + temp[:-1]]))
+            tp.addChild(QTreeWidgetItem(['Windows Size: ' + str(packet[TCP].window)]))
+            tp.addChild(QTreeWidgetItem(['Checksum: ' + str(hex(packet[TCP].chksum))]))
+            tp.addChild(QTreeWidgetItem(['Urgent Pointer: ' + str(hex(packet[TCP].urgptr))]))
             self.analysis.addTopLevelItem(tp)
         elif UDP in packet:
             tp = QTreeWidgetItem(['User Datagram Protocol'])                        #UDP层
-            tp.addChild(QTreeWidgetItem(['Source Port:' + str(packet[UDP].sport)]))
-            tp.addChild(QTreeWidgetItem(['Destination Port:' + str(packet[UDP].dport)]))
-            tp.addChild(QTreeWidgetItem(['Length:' + str(packet[UDP].len)]))
-            tp.addChild(QTreeWidgetItem(['Checksum:' + str(packet[UDP].chksum)]))
+            tp.addChild(QTreeWidgetItem(['Source Port: ' + str(packet[UDP].sport)]))
+            tp.addChild(QTreeWidgetItem(['Destination Port: ' + str(packet[UDP].dport)]))
+            tp.addChild(QTreeWidgetItem(['Length: ' + str(packet[UDP].len)]))
+            tp.addChild(QTreeWidgetItem(['Checksum: ' + str(hex(packet[UDP].chksum))]))
             self.analysis.addTopLevelItem(tp)
         elif ICMP in packet:
+            type_field = ICMP().get_field('type')
             tp = QTreeWidgeItem(['Internet Control Message Protocol'])
+            tp.addChild(QTreeWidgetItem(['Type: ' + str(packet[ICMP].type) + '(' + type_field.i2s[packet[ICMP].type] +')']))
+            tp.addChild(QTreeWidgetItem(['Code: ' + str(packet[ICMP].code)]))
+            tp.addChild(QTreeWidgetItem(['Checksum: ' + str(hex(packet[ICMP].chksum))]))
             self.analysis.addTopLevelItem(tp)
 
     def filter(self):
@@ -253,7 +316,6 @@ class Main(QMainWindow):
         self.select = uic.loadUi('select.ui')
         for i in get_windows_if_list():                                        #网卡信息
             self.select.networkIF.addItem(i['name'])
-
         import pandas as pd
         location = pd.read_csv('worldcities.csv')
         city = location['city_ascii'].to_list()
@@ -266,9 +328,13 @@ class Main(QMainWindow):
         self.select.Country.addItems(country)
         self.select.Country.currentIndexChanged.connect(self.cityInfo)
         if (self.select.exec_()):
-            #thread settings
             self.city = self.select.City.currentText()
             ifname = self.select.networkIF.currentText()
+            try:
+                sniff(iface=IFACES.dev_from_name(ifname),count=0)
+            except scapy.error.Scapy_Exception:
+                QMessageBox.information(self,"Interface Invalid","Cannot get pcap from this interface.")
+                return
             self.locallat = float(location.loc[location['city_ascii'] == self.city]['lat'])
             self.locallon = float(location.loc[location['city_ascii'] == self.city]['lng'])
             self.threadpool = QThreadPool()                                     #线程池
@@ -388,14 +454,16 @@ class Main(QMainWindow):
         elif ((ipnum[0] == 192) and (ipnum[1] == 168)): return
         else: return ip
     
-    def flowPredict(self):
-        from FlowCheck.dl import preprocess,predict,getFlowInfo
-        sth = getFlowInfo(self.packet)
-        target = []
-        for i in sth['Flow']:
-            i.attrforDL()
-            target.append(preprocess(i.features))
-        result = predict(target)
+    def flowPredictStart(self):
+        from FlowCheck.dl import FlowPredict
+        self.statusbar.showMessage("Predict Flow...")
+        self.threadpool = QThreadPool()                                     #线程池
+        thread = FlowPredict(self.packet)
+        thread.signal.doneSignal.connect(self.flowPredictEnd)
+        self.threadpool.start(thread)
+
+    def flowPredictEnd(self):
+        self.statusbar.showMessage("Done!",2000)
 
 
 if __name__ == '__main__':
