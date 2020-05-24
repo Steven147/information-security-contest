@@ -26,7 +26,7 @@ class FlowPredict(QRunnable):
         result = predict(target)
         with open('result.txt','w') as infile:
             for i in range (0,len(sth['Flow'])):
-                infile.write(sth['Flow'][i].flowID +','+ str(result[i]) + '\n')
+                infile.write(sth['Flow'][i].flowID +',['+ str(result[i][0][0]) + ' '+ str(result[i][0][1])+' '+ str(result[i][0][2]) +' '+ str(result[i][0][3])+' '+ str(result[i][0][4])+ ']\n')
         self.signal.doneSignal.emit()
 
 def getFlowInfo(packet):
@@ -53,4 +53,5 @@ def predict(target):
     result = []
     for i in target:
         result.append(model.predict(i))
+    K.clear_session()
     return result

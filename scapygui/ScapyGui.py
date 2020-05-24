@@ -238,7 +238,7 @@ class Main(QMainWindow):
         dialog.setFileMode(QFileDialog.AnyFile)
         dialog.setViewMode(QFileDialog.Detail)
         fileName = dialog.getSaveFileName()
-        if (fileName != None) and (len(self.packet) != 0):
+        if (fileName[0] != "") and (len(self.packet) != 0):
             _ = wrpcap(fileName[0],self.packet)
 
     def onlineSniff(self):
