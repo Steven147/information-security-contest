@@ -1,7 +1,6 @@
-from PyQt5.QtCore import *
-from FlowMeter.BasicPacket import BasicPacketInfo
+from PyQt5.QtCore import QObject,pyqtSignal,QRunnable
+from FlowCheck.BasicPacket import BasicPacketInfo
 from scapy.all import *
-#import ptvsd
 
 class Signal(QObject):
     doneSignal = pyqtSignal(scapy.layers.l2.Ether)

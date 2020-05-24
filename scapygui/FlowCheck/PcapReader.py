@@ -1,11 +1,11 @@
 from FlowCheck.BasicPacket import BasicPacketInfo
-from scapy.all import *
+from scapy.all import IP,UDP,TCP
 
 def pcapReader(packet):
     count = 1
     package = []
     for i in packet:
-        timestamp = i.time*1000000 #change to mircosecond
+        timestamp = i.time*1000000
         temp = None
         if IP in i:
             if UDP in i:

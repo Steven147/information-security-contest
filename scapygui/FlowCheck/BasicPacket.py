@@ -9,7 +9,6 @@ class BasicPacketInfo():
         self.ptc = ptc
         self.payloadBytes = payload
         self.timeStamp = timestamp
-        #----- Initialize -------#
         self.flowID = None
         self.flagFIN = False
         self.flagPSH = False
@@ -39,12 +38,9 @@ class BasicPacketInfo():
     def fwdFlowID(self):
         self.flowID = self.src + '-' + str(self.sport) + '-' + self.dst + '-' + str(self.dport) + '-' + str(self.ptc)
         return self.flowID
-        #return (self.src + '-' + str(self.sport) + '-' + self.dst + '-' + str(self.dport) + '-' + str(self.ptc))
     def bwdFlowID(self):
         self.flowID = self.dst + '-' +str(self.dport) + '-' + self.src + '-' + str(self.sport) + '-' + str(self.ptc)
         return self.flowID
-        #return (self.dst + '-' +str(self.dport) + '-' + self.src + '-' + str(self.sport) + '-' + str(self.ptc))
-        
     def setflagFIN(self,value):
         self.flagFIN = value
     def setflagPSH(self,value):
@@ -63,12 +59,12 @@ class BasicPacketInfo():
         self.flagRST = value
     def setprotocol(self,value):
     	self.ptc = value
-
     def setTCPWindow(self,value):
         self.TCPWindow = value
     def setheaderLen(self,value):
         self.hdlen = value
 
+    '''
     def check(self):
         return ("No:"+ str(self.no) + '\n' +
                 "Source: "+ str(self.src) + '\n' +
@@ -89,3 +85,4 @@ class BasicPacketInfo():
                 "TCP Window:" + str(self.TCPWindow) + '\n' +
                 "Header Length:" + str(self.hdlen) + '\n'
                 )
+    '''
