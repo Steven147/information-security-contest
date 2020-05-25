@@ -61,10 +61,10 @@ class Main(QMainWindow):
             self.summary.item(rowposition, 3).setBackground(QColor(255, 203, 255))
             self.summary.item(rowposition, 4).setBackground(QColor(255, 203, 255))
             self.summary.item(rowposition, 5).setBackground(QColor(255, 203, 255))
-            
+
         elif IP in packet:
             self.summary.setItem(rowposition,1,QTableWidgetItem(packet[IP].src))
-            self.summary.setItem(rowposition, 3, QTableWidgetItem(packet[IP].dst))
+            self.summary.setItem(rowposition,3,QTableWidgetItem(packet[IP].dst))
             if (packet[IP].proto == 1): 
                 action = ICMP().get_field('type')
                 self.summary.setItem(rowposition,2,QTableWidgetItem('ICMP'))
@@ -75,6 +75,7 @@ class Main(QMainWindow):
                 self.summary.item(rowposition, 3).setBackground(QColor(217, 203, 255))
                 self.summary.item(rowposition, 4).setBackground(QColor(217, 203, 255))
                 self.summary.item(rowposition, 5).setBackground(QColor(217, 203, 255))
+
             elif (packet[IP].proto == 6): 
                 self.summary.setItem(rowposition,2,QTableWidgetItem('TCP'))
                 temp = ""
@@ -124,12 +125,13 @@ class Main(QMainWindow):
                     if k == 'F': temp += 'FIN,'
                 info = str(packet[TCP].sport) + '->' + str(packet[TCP].dport) + '[' + temp[:-1] + ']'
                 self.summary.setItem(rowposition,5,QTableWidgetItem(info))
-                self.summary.item(rowposition, 0).setBackground(QColor(203, 255, 209))
-                self.summary.item(rowposition, 1).setBackground(QColor(203, 255, 209))
-                self.summary.item(rowposition, 2).setBackground(QColor(203, 255, 209))
-                self.summary.item(rowposition, 3).setBackground(QColor(203, 255, 209))
-                self.summary.item(rowposition, 4).setBackground(QColor(203, 255, 209))
-                self.summary.item(rowposition, 5).setBackground(QColor(203, 255, 209))
+                self.summary.item(rowposition, 0).setBackground(QColor(203, 255, 247))
+                self.summary.item(rowposition, 1).setBackground(QColor(203, 255, 247))
+                self.summary.item(rowposition, 2).setBackground(QColor(203, 255, 247))
+                self.summary.item(rowposition, 3).setBackground(QColor(203, 255, 247))
+                self.summary.item(rowposition, 4).setBackground(QColor(203, 255, 247))
+                self.summary.item(rowposition, 5).setBackground(QColor(203, 255, 247))
+
             elif (packet[IPv6].nh == 17):
                 self.summary.setItem(rowposition,2,QTableWidgetItem('UDP'))
                 info = str(packet[UDP].sport) + '->' + str(packet[UDP].dport)
@@ -140,28 +142,6 @@ class Main(QMainWindow):
                 self.summary.item(rowposition, 3).setBackground(QColor(203, 255, 247))
                 self.summary.item(rowposition, 4).setBackground(QColor(203, 255, 247))
                 self.summary.item(rowposition, 5).setBackground(QColor(203, 255, 247))
-
-        elif IPv6 in packet:
-            self.summary.setItem(rowposition,1,QTableWidgetItem(packet[IPv6].src))
-            if (packet[IPv6].nh == 6): 
-                self.summary.setItem(rowposition,2,QTableWidgetItem('TCP'))
-                temp = ""
-                for k in packet[TCP].flags:                                                             #TCP包中flags的状况
-                    if k == 'C': temp += 'CWR,'
-                    if k == 'E': temp += 'ECE,'
-                    if k == 'U': temp += 'URG,'
-                    if k == 'A': temp += 'ACK,'
-                    if k == 'P': temp += 'PSH,'
-                    if k == 'R': temp += 'RST,'
-                    if k == 'S': temp += 'SYN,'
-                    if k == 'F': temp += 'FIN,'
-                info = str(packet[TCP].sport) + '->' + str(packet[TCP].dport) + '[' + temp[:-1] + ']'
-                self.summary.setItem(rowposition,5,QTableWidgetItem(info))
-            elif (packet[IPv6].nh == 17):
-                self.summary.setItem(rowposition,2,QTableWidgetItem('UDP'))
-                info = str(packet[UDP].sport) + '->' + str(packet[UDP].dport)
-                self.summary.setItem(rowposition,5,QTableWidgetItem(info))
-            self.summary.setItem(rowposition,3,QTableWidgetItem(packet[IPv6].dst))
 
     def moreInfo(self,line,col):
         packet = self.packet[int(self.summary.item(line,0).text())]
@@ -382,6 +362,9 @@ class Main(QMainWindow):
                 QMessageBox.information(self,"File Extension Error","Only Accept .pcap file")
 
     def geoGet(self):
+        if len(self.packet) == 0:
+            QMessageBox.information(self,"Failed to draw map","Nothing to draw!")
+            return
         temp  = []
         repeat_ip = []
         for i in self.packet:
@@ -426,6 +409,9 @@ class Main(QMainWindow):
         else: return ip
     
     def flowPredictStart(self):
+        if len(self.packet) == 0:
+            QMessageBox.information(self,"Failed to predict","Nothing to predict!")
+            return
         from FlowCheck.dl import FlowPredict
         self.statusbar.showMessage("Predict Flow...")
         self.threadpool = QThreadPool()
