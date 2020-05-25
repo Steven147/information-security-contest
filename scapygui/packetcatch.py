@@ -1,24 +1,22 @@
-from PyQt5.QtCore import *
-from FlowMeter.BasicPacket import BasicPacketInfo
+from PyQt5.QtCore import QObject,pyqtSignal,QRunnable
+from FlowCheck.BasicPacket import BasicPacketInfo
 from scapy.all import *
-#import ptvsd
 
 class Signal(QObject):
     doneSignal = pyqtSignal(scapy.layers.l2.Ether)
     startSignal = pyqtSignal(bool)
 
 class packetsniff(QRunnable):
-    def __init__(self):
+    def __init__(self,ifname):
         super(packetsniff,self).__init__()
         self.signals = Signal()
         self.status = True
+        self.ifname = ifname
 
     def run(self):
-        #ptvsd.debug_this_thread()
-        #initial value
         count = 0
         while self.status:
-            packet = sniff(count=1)
+            packet = sniff(iface=IFACES.dev_from_name(self.ifname),count=1)
             packet = packet[0]
             if IP in packet:
                 if UDP in packet:

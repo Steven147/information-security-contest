@@ -61,6 +61,7 @@ class Main(QMainWindow):
             self.summary.item(rowposition, 3).setBackground(QColor(255, 203, 255))
             self.summary.item(rowposition, 4).setBackground(QColor(255, 203, 255))
             self.summary.item(rowposition, 5).setBackground(QColor(255, 203, 255))
+            
         elif IP in packet:
             self.summary.setItem(rowposition,1,QTableWidgetItem(packet[IP].src))
             self.summary.setItem(rowposition, 3, QTableWidgetItem(packet[IP].dst))
@@ -94,6 +95,7 @@ class Main(QMainWindow):
                 self.summary.item(rowposition, 3).setBackground(QColor(203, 255, 209))
                 self.summary.item(rowposition, 4).setBackground(QColor(203, 255, 209))
                 self.summary.item(rowposition, 5).setBackground(QColor(203, 255, 209))
+                
             elif (packet[IP].proto == 17):
                 self.summary.setItem(rowposition,2,QTableWidgetItem('UDP'))
                 info = str(packet[UDP].sport) + '->' + str(packet[UDP].dport)
@@ -138,6 +140,28 @@ class Main(QMainWindow):
                 self.summary.item(rowposition, 3).setBackground(QColor(203, 255, 247))
                 self.summary.item(rowposition, 4).setBackground(QColor(203, 255, 247))
                 self.summary.item(rowposition, 5).setBackground(QColor(203, 255, 247))
+
+        elif IPv6 in packet:
+            self.summary.setItem(rowposition,1,QTableWidgetItem(packet[IPv6].src))
+            if (packet[IPv6].nh == 6): 
+                self.summary.setItem(rowposition,2,QTableWidgetItem('TCP'))
+                temp = ""
+                for k in packet[TCP].flags:                                                             #TCP包中flags的状况
+                    if k == 'C': temp += 'CWR,'
+                    if k == 'E': temp += 'ECE,'
+                    if k == 'U': temp += 'URG,'
+                    if k == 'A': temp += 'ACK,'
+                    if k == 'P': temp += 'PSH,'
+                    if k == 'R': temp += 'RST,'
+                    if k == 'S': temp += 'SYN,'
+                    if k == 'F': temp += 'FIN,'
+                info = str(packet[TCP].sport) + '->' + str(packet[TCP].dport) + '[' + temp[:-1] + ']'
+                self.summary.setItem(rowposition,5,QTableWidgetItem(info))
+            elif (packet[IPv6].nh == 17):
+                self.summary.setItem(rowposition,2,QTableWidgetItem('UDP'))
+                info = str(packet[UDP].sport) + '->' + str(packet[UDP].dport)
+                self.summary.setItem(rowposition,5,QTableWidgetItem(info))
+            self.summary.setItem(rowposition,3,QTableWidgetItem(packet[IPv6].dst))
 
     def moreInfo(self,line,col):
         packet = self.packet[int(self.summary.item(line,0).text())]
@@ -274,7 +298,7 @@ class Main(QMainWindow):
         dialog.setFileMode(QFileDialog.AnyFile)
         dialog.setViewMode(QFileDialog.Detail)
         fileName = dialog.getSaveFileName()
-        if (fileName != None) and (len(self.packet) != 0):
+        if (fileName[0] != "") and (len(self.packet) != 0):
             _ = wrpcap(fileName[0],self.packet)
 
     def onlineSniff(self):

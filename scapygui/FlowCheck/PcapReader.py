@@ -1,29 +1,32 @@
 from FlowCheck.BasicPacket import BasicPacketInfo
-from scapy.all import *
+from scapy.all import IP,UDP,TCP
 
 def pcapReader(packet):
     count = 1
     package = []
     for i in packet:
-        timestamp = i.time*1000000 #change to mircosecond
+        timestamp = i.time*1000000
         temp = None
         if IP in i:
             if UDP in i:
                 temp = BasicPacketInfo(count,i[IP].src,i[IP].dst,i[UDP].sport,i[UDP].dport,17,len(i[UDP].payload),timestamp)
-                hdlen = 8
-                temp.setheaderLen(hdlen)
+                temp.setheaderLen(8)
             elif TCP in i:
                 temp = BasicPacketInfo(count,i[IP].src,i[IP].dst,i[TCP].sport,i[TCP].dport,6,len(i[TCP].payload),timestamp)
                 TCPset(temp,i[TCP])
-                hdlen = i.dataofs*4
+                hdlen = i[TCP].dataofs*4
                 temp.setheaderLen(hdlen)
-        #elif IPv6 in i:
-        #    if UDP in i:
-        #        #IPv6 Proto ??
-        #        temp = BasicPacketInfo(count,i[IPv6].src,i[IPv6].dst,i[UDP].sport,i[UDP].dport,i[IPv6].proto,len(i[UDP].payload),i[IPv6].time)
-        #    elif TCP in i:
-        #        temp = BasicPacketInfo(count,i[IPv6].src,i[IPv6].dst,i[TCP].sport,i[TCP].dport,i[IPv6].proto,len(i[TCP].payload),i[IPv6].time)
-        #        TCPset(temp,i[TCP])
+        '''
+        elif IPv6 in i:
+            if UDP in i:
+                temp = BasicPacketInfo(count,i[IPv6].src,i[IPv6].dst,i[UDP].sport,i[UDP].dport,i[IPv6].nh,len(i[UDP].payload),timestamp)
+                temp.setheaderLen(8)
+            elif TCP in i:
+                temp = BasicPacketInfo(count,i[IPv6].src,i[IPv6].dst,i[TCP].sport,i[TCP].dport,i[IPv6].nh,len(i[TCP].payload),timestamp)
+                TCPset(temp,i[TCP])
+                hdlen = i[TCP].dataofs*4
+                temp.setheaderLen(hdlen)
+        '''
         if temp:
             package.append(temp)
             count += 1
